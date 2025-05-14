@@ -1,0 +1,5 @@
+# mkdocs.yml
+site_name: Devin Template Docs
+nav:
+    - Home: index.md
+docs_dir: docs

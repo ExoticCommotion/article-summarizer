@@ -1,0 +1,57 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "▶️ Debug Main App",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/backend/app/main.py",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "src",  // ✅ align import root
+        "ENV": "dev",
+        "OPENAI_API_KEY": "${env:OPENAI_API_KEY}"
+      }
+    },
+    {
+      "name": "🧪 Run Pytest (Debug Mode)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "src",
+        "-s",
+        "-v"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "PYTHONPATH": "src",  // ✅ align import root
+        "ENV": "test",
+        "OPENAI_API_KEY": "${env:OPENAI_API_KEY}"
+      }
+    },
+    {
+      "name": "🧪 Debug Specific Test File",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "PYTHONPATH": "src"
+      }
+    },
+    {
+      "name": "🛠️ Run CLI Test",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "backend.tests.cli.cli_test",
+      "console": "integratedTerminal",
+      "env": {
+        "PYTHONPATH": "src"
+      }
+    }
+  ]
+}

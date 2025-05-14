@@ -1,0 +1,46 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Tests",
+      "type": "shell",
+      "command": "PYTHONPATH=src uv run pytest src --ignore=reference_projects",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Lint (ruff)",
+      "type": "shell",
+      "command": "uv run ruff check src --exclude reference_projects",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Format (ruff)",
+      "type": "shell",
+      "command": "uv run ruff format src --exclude reference_projects",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Type Check (mypy)",
+      "type": "shell",
+      "command": "PYTHONPATH=src uv run mypy src --exclude reference_projects",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Coverage",
+      "type": "shell",
+      "command": "uv run coverage run -m pytest src && uv run coverage report -m",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always"
+      }
+    }
+  ]
+}

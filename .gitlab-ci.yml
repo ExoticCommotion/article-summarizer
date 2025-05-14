@@ -1,0 +1,45 @@
+# GitLab CI for DEVIN_TEMPLATE
+image: python:3.11
+
+variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+    PYTHONPATH: "src" # ✅ Standardize to src root
+    OPENAI_API_KEY: "fake-for-tests" # Override in real project
+
+cache:
+    paths:
+        - .pip-cache/
+
+stages:
+    - setup
+    - lint
+    - typecheck
+    - test
+
+before_script:
+    - pip install --upgrade pip uv
+    - make sync
+
+lint:
+    stage: lint
+    script:
+        - make lint
+    only:
+        changes:
+            - src/**/*
+
+typecheck:
+    stage: typecheck
+    script:
+        - make typecheck
+    only:
+        changes:
+            - src/**/*
+
+test:
+    stage: test
+    script:
+        - make test
+    only:
+        changes:
+            - src/**/*

@@ -1,0 +1,27 @@
+name: Mark stale issues
+
+on:
+    schedule:
+        - cron: "30 1 * * *"
+
+jobs:
+    mark-stale:
+        runs-on: ubuntu-latest
+        permissions:
+            issues: write
+            pull-requests: write
+        steps:
+            - uses: actions/stale@v9
+              with:
+                  days-before-issue-stale: 14
+                  days-before-issue-close: -1 # ✅ never auto-close
+                  stale-issue-label: "stale"
+                  stale-issue-message: |
+                      This issue has had no activity for 14 days. If it's still relevant, please comment or update the status.
+                  any-of-issue-labels: "question,needs-more-info"
+                  days-before-pr-stale: 21
+                  days-before-pr-close: -1
+                  stale-pr-label: "stale"
+                  stale-pr-message: |
+                      This PR hasn't been updated in 21 days. Please rebase or update if you'd like it merged.
+                  repo-token: ${{ secrets.GITHUB_TOKEN }}

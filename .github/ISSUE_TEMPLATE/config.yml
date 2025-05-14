@@ -1,0 +1,20 @@
+blank_issues_enabled: false
+contact_links:
+    - name: 📚 Documentation
+      about: Visit the docs before submitting a new issue.
+issue_templates:
+    - name: 🛠️ Devin Task
+      description: Scoped task for Devin or another AI to work on
+      file: devin_task.md
+    - name: 💡 Feature Request
+      description: Suggest an improvement or new capability
+      file: feature_request.md
+    - name: 🐛 Bug Report
+      description: Report a crash or incorrect behavior
+      file: bug_report.md
+    - name: 🧼 Refactor Task
+      description: Suggest internal code reorganization or cleanup
+      file: refactor.md
+    - name: 🔍 Research Spike
+      description: Explore or evaluate a concept before implementing
+      file: research_spike.md

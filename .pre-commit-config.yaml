@@ -1,0 +1,37 @@
+repos:
+    - repo: https://github.com/charliermarsh/ruff-pre-commit
+      rev: v0.4.0
+      hooks:
+          - id: ruff
+          - id: ruff-format
+
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v4.5.0
+      hooks:
+          - id: check-merge-conflict
+          - id: check-yaml
+          - id: end-of-file-fixer
+          - id: trailing-whitespace
+
+    - repo: local
+      hooks:
+          - id: mypy
+            name: "✅ Mypy Typecheck (via uv)"
+            entry: uv run mypy src --config-file pyproject.toml --exclude reference_projects
+            language: system
+            pass_filenames: false
+            always_run: true
+            stages: [pre-commit]
+
+          - id: run-tests
+            name: "✅ Run Tests"
+            entry: uv run pytest
+            language: system
+            pass_filenames: false
+            always_run: true
+            stages: [pre-commit]
+
+# 🔧 Global
+exclude: ^reference_projects/
+default_stages: [pre-commit]
+fail_fast: true
