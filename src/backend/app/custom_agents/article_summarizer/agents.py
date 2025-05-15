@@ -89,5 +89,5 @@ audio_formatter_agent = Agent(
 def generate_trace_id() -> str:
     """Generate a trace ID that starts with 'trace_'."""
     raw_id = gen_trace_id()
-    clean_id = raw_id.replace('trace_', '')
+    clean_id = raw_id.replace("trace_", "")
     return f"trace_{clean_id}"

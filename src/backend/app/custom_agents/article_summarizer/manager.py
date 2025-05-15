@@ -10,7 +10,6 @@ from backend.app.custom_agents.article_summarizer.agents import (
     AudioFormat,
     SummaryData,
     audio_formatter_agent,
-    content_extractor_agent,
     generate_trace_id,
     summarizer_agent,
 )
@@ -76,21 +75,19 @@ class ArticleSummarizerManager:
             if not html_content:
                 logger.error("Failed to fetch article content")
                 return None
-                
+
             from backend.app.custom_agents.article_summarizer.parser import extract_article_text
+
             article_text = extract_article_text(html_content)
-            
+
             import re
-            title_match = re.search(r'<title>(.*?)</title>', html_content, re.IGNORECASE)
+
+            title_match = re.search(r"<title>(.*?)</title>", html_content, re.IGNORECASE)
             title = title_match.group(1) if title_match else "Untitled Article"
-            
-            title = re.sub(r'\s*[-–|]\s*.*$', '', title).strip()
-            
-            return ArticleContent(
-                title=title,
-                content=article_text,
-                url=url
-            )
+
+            title = re.sub(r"\s*[-–|]\s*.*$", "", title).strip()
+
+            return ArticleContent(title=title, content=article_text, url=url)
         except Exception as e:
             logger.error(f"Error extracting content: {e}")
             return None
