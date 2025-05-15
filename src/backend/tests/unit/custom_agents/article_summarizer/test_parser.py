@@ -61,8 +61,44 @@ def test_extract_article_text():
     </html>
     """
 
-    result = extract_article_text(html_content)
+    article_text, subsections = extract_article_text(html_content)
 
-    assert "Paragraph 1" in result
-    assert "Paragraph 2" in result
-    assert "console.log" not in result
+    assert "Paragraph 1" in article_text
+    assert "Paragraph 2" in article_text
+    assert "console.log" not in article_text
+    assert isinstance(subsections, list)
+
+
+def test_extract_article_text_with_subsections():
+    """Test extracting article text with subsections."""
+    html_content = """
+    <html>
+        <head>
+            <title>Test Article</title>
+        </head>
+        <body>
+            <article>
+                <h1>Main Heading</h1>
+                <p>Introduction paragraph.</p>
+                <h2>First Section</h2>
+                <p>First section content.</p>
+                <p>More first section content.</p>
+                <h2>Second Section</h2>
+                <p>Second section content.</p>
+            </article>
+        </body>
+    </html>
+    """
+
+    article_text, subsections = extract_article_text(html_content)
+
+    assert "Introduction paragraph" in article_text
+    assert "First section content" in article_text
+    assert "Second section content" in article_text
+
+    assert len(subsections) == 3
+    assert subsections[0]["heading"] == "Main Heading"
+    assert subsections[1]["heading"] == "First Section"
+    assert subsections[2]["heading"] == "Second Section"
+    assert "First section content" in subsections[1]["content"]
+    assert "Second section content" in subsections[2]["content"]

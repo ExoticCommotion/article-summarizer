@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 class ArticleSummarizerManager:
     """Manager for the article summarization process."""
 
-    async def summarize_article(self, url: str) -> Path | None:
+    async def summarize_article(self, url: str) -> tuple[Path, Path] | None:
         """
         Summarize an article from a URL and generate audio.
 
@@ -31,7 +31,8 @@ class ArticleSummarizerManager:
             url: The URL of the article to summarize.
 
         Returns:
-            The path to the generated audio file or None if the process failed.
+            A tuple containing the paths to the generated audio file and text file,
+            or None if the process failed.
         """
         trace_id = generate_trace_id()
 
@@ -39,25 +40,37 @@ class ArticleSummarizerManager:
             logger.info(f"Starting article summarization for {url}")
             logger.info(f"Trace ID: {trace_id}")
 
+            # Extract content - first step of the pipeline
             article_content = await self._extract_content(url)
             if not article_content:
                 logger.error("Failed to extract article content")
                 return None
 
-            summary = await self._summarize_article(article_content)
+            from backend.app.custom_agents.article_summarizer.pipeline import (
+                run_audio_formatter,
+                run_summarizer,
+            )
+
+            summary = await run_summarizer(article_content)
             if not summary:
                 logger.error("Failed to summarize article")
                 return None
 
-            audio_format = await self._format_for_audio(summary)
+            audio_format = await run_audio_formatter(summary)
             if not audio_format:
                 logger.error("Failed to format for audio")
                 return None
 
-            audio_path = await generate_audio(audio_format.narration_text, audio_format.filename)
+            # Pass the article title and content to generate_audio
+            audio_path, text_path = await generate_audio(
+                audio_format.narration_text,
+                audio_format.filename,
+                article_content.title,
+                article_content.content,
+            )
 
-            logger.info(f"Article summarization complete. Audio saved to {audio_path}")
-            return audio_path
+            logger.info(f"Article summarization complete. Files saved to {audio_path.parent}")
+            return audio_path, text_path
 
     async def _extract_content(self, url: str) -> ArticleContent | None:
         """
@@ -78,7 +91,7 @@ class ArticleSummarizerManager:
 
             from backend.app.custom_agents.article_summarizer.parser import extract_article_text
 
-            article_text = extract_article_text(html_content)
+            article_text, subsections = extract_article_text(html_content)
 
             import re
 
@@ -87,7 +100,9 @@ class ArticleSummarizerManager:
 
             title = re.sub(r"\s*[-–|]\s*.*$", "", title).strip()
 
-            return ArticleContent(title=title, content=article_text, url=url)
+            return ArticleContent(
+                title=title, content=article_text, url=url, subsections=subsections
+            )
         except Exception as e:
             logger.error(f"Error extracting content: {e}")
             return None

@@ -16,6 +16,9 @@ class ArticleContent(BaseModel):
     url: str
     """The URL of the article."""
 
+    subsections: list[dict[str, str]] = []
+    """Subsections of the article with heading and content."""
+
 
 class SummaryData(BaseModel):
     """Data structure for article summary."""
