@@ -7,6 +7,9 @@ if (-Not (Get-Command uv -ErrorAction SilentlyContinue)) {
     pip install uv
 }
 
+$env:PYTHONPATH = "src"
+Write-Host "PYTHONPATH set to: $env:PYTHONPATH"
+
 # Create virtual environment with uv
 if (-Not (Test-Path ".venv")) {
     Write-Host "🐍 Creating virtual environment..."

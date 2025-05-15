@@ -9,6 +9,9 @@ if ! command -v uv &> /dev/null; then
     pip install uv
 fi
 
+export PYTHONPATH=src
+echo "PYTHONPATH set to: $PYTHONPATH"
+
 # Create and activate uv virtual environment
 if [ ! -d ".venv" ]; then
     echo "🐍 Creating virtual environment with uv..."

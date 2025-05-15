@@ -9,6 +9,9 @@ IF %ERRORLEVEL% NEQ 0 (
     pip install uv
 )
 
+set PYTHONPATH=src
+echo PYTHONPATH set to: %PYTHONPATH%
+
 REM Create virtual environment with uv
 IF NOT EXIST ".venv" (
     echo 🐍 Creating virtual environment with uv...
