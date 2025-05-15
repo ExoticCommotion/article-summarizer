@@ -22,7 +22,6 @@ logger = get_logger(__name__)
 app = typer.Typer(add_completion=False, help="🧠 Article Summarizer CLI")
 
 
-
 @app.command()
 def greet(
     name: str = typer.Argument("Example", help="Name to greet"),
@@ -43,8 +42,6 @@ def greet(
     punctuation = "!" if excited else "."
     for _ in range(times):
         print(f"[bold green]Hello, {name}{punctuation}[/]")
-
-
 
 
 @app.command()
@@ -85,7 +82,6 @@ async def _summarize_article(url: str) -> Path:
         print("[bold red]Failed to summarize article.[/]")
         sys.exit(1)
     return result
-
 
 
 if __name__ == "__main__":
