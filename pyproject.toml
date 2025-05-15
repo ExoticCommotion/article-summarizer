@@ -33,6 +33,7 @@ dev = [
     "coverage[toml]>=7.4.0",
     "mkdocs>=1.5.3",
     "mkdocs-material>=9.5.14",
+    "types-beautifulsoup4>=4.12.0.20240321",
 ]
 
 [build-system]
