@@ -32,10 +32,15 @@ async def test_generate_audio():
         patch("backend.app.custom_agents.article_summarizer.audio.open", MagicMock()) as mock_open,
         patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}),
     ):
-        result = await generate_audio("Test text", "test_output")
+        result = await generate_audio(
+            "Test text", "test_output", "Test Article", "Test article content"
+        )
 
-        assert isinstance(result, Path)
-        assert str(result).endswith("test_output.mp3")
+        audio_path, text_path = result
+        assert isinstance(audio_path, Path)
+        assert isinstance(text_path, Path)
+        assert audio_path.name.endswith(".mp3")
+        assert text_path.name.endswith(".txt")
 
         mock_speech.create.assert_called_once_with(
             model="tts-1",
@@ -45,4 +50,5 @@ async def test_generate_audio():
         )
 
         mock_file = mock_open.return_value.__enter__.return_value
-        mock_file.write.assert_called_once_with(b"audio data")
+        mock_file.write.assert_any_call("Test article content")
+        mock_file.write.assert_any_call(b"audio data")

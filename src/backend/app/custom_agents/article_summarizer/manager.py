@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 class ArticleSummarizerManager:
     """Manager for the article summarization process."""
 
-    async def summarize_article(self, url: str) -> Path | None:
+    async def summarize_article(self, url: str) -> tuple[Path, Path] | None:
         """
         Summarize an article from a URL and generate audio.
 
@@ -31,7 +31,8 @@ class ArticleSummarizerManager:
             url: The URL of the article to summarize.
 
         Returns:
-            The path to the generated audio file or None if the process failed.
+            A tuple containing the paths to the generated audio file and text file,
+            or None if the process failed.
         """
         trace_id = generate_trace_id()
 
@@ -54,10 +55,16 @@ class ArticleSummarizerManager:
                 logger.error("Failed to format for audio")
                 return None
 
-            audio_path = await generate_audio(audio_format.narration_text, audio_format.filename)
+            # Pass the article title and content to generate_audio
+            audio_path, text_path = await generate_audio(
+                audio_format.narration_text,
+                audio_format.filename,
+                article_content.title,
+                article_content.content,
+            )
 
-            logger.info(f"Article summarization complete. Audio saved to {audio_path}")
-            return audio_path
+            logger.info(f"Article summarization complete. Files saved to {audio_path.parent}")
+            return audio_path, text_path
 
     async def _extract_content(self, url: str) -> ArticleContent | None:
         """

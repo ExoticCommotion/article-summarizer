@@ -81,7 +81,8 @@ async def _summarize_article(url: str) -> Path:
     if not result:
         print("[bold red]Failed to summarize article.[/]")
         sys.exit(1)
-    return result
+    audio_path, _ = result
+    return audio_path
 
 
 if __name__ == "__main__":
