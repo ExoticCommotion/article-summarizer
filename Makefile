@@ -127,3 +127,18 @@ DIFF_FILE := $(OUTPUT_DIR)/pr_diff_$(FILENAME_TAG).txt
 # Usage: make pr-diff PR=devin-1747167891-implement-feedback-synthesizer
 pr-diff:
 	scripts/generate_pr_diffs.sh
+
+
+e2e:
+	uv run python -m src.backend.app.cli summarize https://en.wikipedia.org/wiki/AI_safety
+
+cb:
+	@if [ -z "$(BRANCH)" ]; then \
+		echo "❌ Please provide BRANCH=<remote-branch-name>"; \
+		exit 1; \
+	fi
+	@LOCAL=$$(echo $(BRANCH) | tr '/' '-'); \
+	echo "📥 Fetching from origin/$(BRANCH)..."; \
+	git fetch origin $(BRANCH) && \
+	echo "🌿 Creating and switching to local branch $$LOCAL..." && \
+	git checkout -b $$LOCAL origin/$(BRANCH)
