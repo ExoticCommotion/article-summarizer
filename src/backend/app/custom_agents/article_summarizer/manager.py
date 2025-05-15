@@ -14,7 +14,12 @@ from backend.app.custom_agents.article_summarizer.agents import (
     summarizer_agent,
 )
 from backend.app.custom_agents.article_summarizer.audio import generate_audio
-from backend.app.custom_agents.article_summarizer.parser import fetch_article_content
+from backend.app.custom_agents.article_summarizer.parser import (
+    extract_article_title,
+    extract_wikipedia_sections,
+    fetch_article_content,
+    generate_unique_filename,
+)
 from backend.app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -39,25 +44,34 @@ class ArticleSummarizerManager:
             logger.info(f"Starting article summarization for {url}")
             logger.info(f"Trace ID: {trace_id}")
 
-            article_content = await self._extract_content(url)
-            if not article_content:
-                logger.error("Failed to extract article content")
-                return None
+            if "wikipedia.org" in url.lower():
+                logger.info("Detected Wikipedia article, processing sections individually")
+                audio_paths = await self._process_wikipedia_article(url)
+                if not audio_paths:
+                    logger.error("Failed to process Wikipedia article sections")
+                    return None
+                
+                return audio_paths[0]
+            else:
+                article_content = await self._extract_content(url)
+                if not article_content:
+                    logger.error("Failed to extract article content")
+                    return None
 
-            summary = await self._summarize_article(article_content)
-            if not summary:
-                logger.error("Failed to summarize article")
-                return None
+                summary = await self._summarize_article(article_content)
+                if not summary:
+                    logger.error("Failed to summarize article")
+                    return None
 
-            audio_format = await self._format_for_audio(summary)
-            if not audio_format:
-                logger.error("Failed to format for audio")
-                return None
+                audio_format = await self._format_for_audio(summary)
+                if not audio_format:
+                    logger.error("Failed to format for audio")
+                    return None
 
-            audio_path = await generate_audio(audio_format.narration_text, audio_format.filename)
+                audio_path = await generate_audio(audio_format.narration_text, audio_format.filename)
 
-            logger.info(f"Article summarization complete. Audio saved to {audio_path}")
-            return audio_path
+                logger.info(f"Article summarization complete. Audio saved to {audio_path}")
+                return audio_path
 
     async def _extract_content(self, url: str) -> ArticleContent | None:
         """
@@ -142,3 +156,91 @@ class ArticleSummarizerManager:
         except Exception as e:
             logger.error(f"Error formatting for audio: {e}")
             return None
+            
+    async def _process_wikipedia_article(self, url: str) -> list[Path]:
+        """
+        Process a Wikipedia article by analyzing each section individually.
+        
+        Args:
+            url: The URL of the Wikipedia article.
+            
+        Returns:
+            A list of paths to the generated audio files.
+        """
+        try:
+            logger.info(f"Processing Wikipedia article: {url}")
+            
+            html_content = await fetch_article_content(url)
+            if not html_content:
+                logger.error("Failed to fetch Wikipedia article content")
+                return []
+                
+            article_title = extract_article_title(html_content)
+            logger.info(f"Article title: {article_title}")
+            
+            sections = extract_wikipedia_sections(html_content)
+            if not sections:
+                logger.error("No sections found in Wikipedia article")
+                return []
+                
+            logger.info(f"Found {len(sections)} sections in Wikipedia article")
+            
+            main_content = "\n\n".join([f"## {section.title}\n{section.content}" for section in sections])
+            main_article = ArticleContent(
+                title=article_title,
+                content=main_content,
+                url=url
+            )
+            
+            main_summary = await self._summarize_article(main_article)
+            if not main_summary:
+                logger.error("Failed to create main summary")
+                return []
+                
+            main_audio = await self._format_for_audio(main_summary)
+            if not main_audio:
+                logger.error("Failed to format main summary for audio")
+                return []
+                
+            main_filename = generate_unique_filename(f"{article_title}_complete_summary")
+            main_audio_path = await generate_audio(main_audio.narration_text, main_filename)
+            
+            audio_paths = [main_audio_path]
+            
+            for section in sections:
+                if len(section.content.strip()) < 100:  # Skip very short sections
+                    logger.info(f"Skipping short section: {section.title}")
+                    continue
+                    
+                logger.info(f"Processing section: {section.title}")
+                
+                section_content = ArticleContent(
+                    title=f"{article_title}: {section.title}",
+                    content=section.content,
+                    url=url
+                )
+                
+                # Summarize section
+                section_summary = await self._summarize_article(section_content)
+                if not section_summary:
+                    logger.warning(f"Failed to summarize section: {section.title}")
+                    continue
+                    
+                section_audio = await self._format_for_audio(section_summary)
+                if not section_audio:
+                    logger.warning(f"Failed to format section for audio: {section.title}")
+                    continue
+                
+                section_filename = generate_unique_filename(f"{article_title}_{section.title}")
+                
+                section_audio_path = await generate_audio(section_audio.narration_text, section_filename)
+                audio_paths.append(section_audio_path)
+                
+                logger.info(f"Generated audio for section: {section.title}")
+                
+            logger.info(f"Processed {len(audio_paths)} audio files for Wikipedia article")
+            return audio_paths
+            
+        except Exception as e:
+            logger.error(f"Error processing Wikipedia article: {e}")
+            return []

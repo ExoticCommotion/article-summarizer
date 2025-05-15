@@ -17,27 +17,53 @@ class ArticleContent(BaseModel):
     """The URL of the article."""
 
 
+class ArticleSection(BaseModel):
+    """Data structure for an article section."""
+
+    title: str
+    """The title of the section."""
+
+    content: str
+    """The content of the section."""
+
+    level: int = 0
+    """The heading level (1-6) of the section."""
+
+
 class SummaryData(BaseModel):
     """Data structure for article summary."""
 
     title: str
-    """The title of the article."""
+    """The title of the article or section."""
 
     short_summary: str
-    """A short 2-3 sentence summary of the article."""
+    """A short 2-3 sentence summary of the article or section."""
 
     detailed_summary: str
-    """A more detailed summary of the article in markdown format."""
+    """A more detailed summary of the article or section in markdown format."""
 
     key_points: list[str]
-    """Key points from the article."""
+    """Key points from the article or section."""
+
+
+class SectionSummary(BaseModel):
+    """Data structure for a section summary."""
+
+    section_title: str
+    """The title of the section."""
+
+    summary: str
+    """A summary of the section."""
+
+    key_points: list[str]
+    """Key points from the section."""
 
 
 class AudioFormat(BaseModel):
     """Data structure for audio formatting."""
 
     title: str
-    """The title of the article for the audio."""
+    """The title of the article or section for the audio."""
 
     narration_text: str
     """The text to be converted to audio."""
