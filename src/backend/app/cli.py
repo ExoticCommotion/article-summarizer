@@ -1,10 +1,9 @@
-"""Minimal Devin Template CLI.
+"""Article Summarizer CLI.
 
 Usage examples:
     uv run python -m backend.app.cli greet                # → Hello, Example!
     uv run python -m backend.app.cli greet "Example User" # → Hello, Example User!
-    uv run python -m backend.app.cli greet "Example" --times 3
-    uv run python -m backend.app.cli greet "Example" --excited
+    uv run python -m backend.app.cli summarize https://example.com/article
 """
 
 from __future__ import annotations
@@ -12,7 +11,9 @@ from __future__ import annotations
 import typer
 from rich import print
 
-app = typer.Typer(add_completion=False, help="🧠 Devin template CLI")
+from backend.app.custom_agents.article_summarizer.cli import app as summarize_app
+
+app = typer.Typer(add_completion=False, help="🧠 Article Summarizer CLI")
 
 # ------------------------------------------------------------------ #
 #  Example command with diverse arguments
@@ -40,6 +41,8 @@ def greet(
     for _ in range(times):
         print(f"[bold green]Hello, {name}{punctuation}[/]")
 
+
+app.add_typer(summarize_app, name="summarize")
 
 # ------------------------------------------------------------------ #
 #  Python ‑m entry shim
