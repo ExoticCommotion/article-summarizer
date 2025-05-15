@@ -40,17 +40,23 @@ class ArticleSummarizerManager:
             logger.info(f"Starting article summarization for {url}")
             logger.info(f"Trace ID: {trace_id}")
 
+            # Extract content - first step of the pipeline
             article_content = await self._extract_content(url)
             if not article_content:
                 logger.error("Failed to extract article content")
                 return None
 
-            summary = await self._summarize_article(article_content)
+            from backend.app.custom_agents.article_summarizer.pipeline import (
+                run_audio_formatter,
+                run_summarizer,
+            )
+
+            summary = await run_summarizer(article_content)
             if not summary:
                 logger.error("Failed to summarize article")
                 return None
 
-            audio_format = await self._format_for_audio(summary)
+            audio_format = await run_audio_formatter(summary)
             if not audio_format:
                 logger.error("Failed to format for audio")
                 return None
@@ -85,7 +91,7 @@ class ArticleSummarizerManager:
 
             from backend.app.custom_agents.article_summarizer.parser import extract_article_text
 
-            article_text = extract_article_text(html_content)
+            article_text, subsections = extract_article_text(html_content)
 
             import re
 
@@ -94,7 +100,9 @@ class ArticleSummarizerManager:
 
             title = re.sub(r"\s*[-–|]\s*.*$", "", title).strip()
 
-            return ArticleContent(title=title, content=article_text, url=url)
+            return ArticleContent(
+                title=title, content=article_text, url=url, subsections=subsections
+            )
         except Exception as e:
             logger.error(f"Error extracting content: {e}")
             return None
