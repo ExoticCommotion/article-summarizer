@@ -3,6 +3,16 @@
 import httpx
 from bs4 import BeautifulSoup
 
+from backend.app.types.article_summarizer.parser_types import (
+    ArticleHeading,
+    ArticleImage,
+    ArticleLink,
+    ArticleMetadataResult,
+    ArticleStructureResult,
+    ArticleSubsection,
+    ArticleTable,
+    ExtractedArticleContent,
+)
 from backend.app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -29,14 +39,7 @@ async def fetch_article_content(url: str) -> str | None:
         return None
 
 
-def extract_article_text(
-    html_content: str,
-) -> tuple[
-    str,
-    list[dict[str, str]],
-    dict[str, str | list[str]],
-    dict[str, list[dict[str, str | int | list[str]]]],
-]:
+def extract_article_text(html_content: str) -> ExtractedArticleContent:
     """
     Extract the main article text and metadata from HTML content.
 
@@ -44,11 +47,8 @@ def extract_article_text(
         html_content: The HTML content of the article.
 
     Returns:
-        A tuple containing:
-        - The extracted article text
-        - A list of subsections with their headings and content
-        - Article metadata (title, author, date, source, tags)
-        - Article structure (headings, images, links, tables)
+        An ExtractedArticleContent object containing the article text, subsections,
+        metadata, and structure.
     """
     logger.info("Extracting article text, subsections, and metadata from HTML content")
     soup = BeautifulSoup(html_content, "html.parser")
@@ -161,4 +161,64 @@ def extract_article_text(
     logger.info(
         f"Extracted {len(article_text)} characters of text, {len(subsections)} subsections, and {len(structure['headings'])} headings"
     )
-    return article_text, subsections, metadata, structure
+
+    article_subsections = []
+    for subsection in subsections:
+        article_subsections.append(
+            ArticleSubsection(heading=subsection["heading"], content=subsection["content"])
+        )
+
+    title = str(metadata["title"]) if isinstance(metadata["title"], str) else ""
+    author = str(metadata["author"]) if isinstance(metadata["author"], str) else ""
+    published_date = (
+        str(metadata["published_date"]) if isinstance(metadata["published_date"], str) else ""
+    )
+    source = str(metadata["source"]) if isinstance(metadata["source"], str) else ""
+    tags = metadata["tags"] if isinstance(metadata["tags"], list) else []
+
+    metadata_result = ArticleMetadataResult(
+        title=title,
+        author=author,
+        published_date=published_date,
+        source=source,
+        tags=tags,
+    )
+
+    heading_objects = []
+    for h in structure["headings"]:
+        text = str(h["text"]) if isinstance(h["text"], str) else ""
+        level = int(h["level"]) if isinstance(h["level"], int) else 1
+        heading_objects.append(ArticleHeading(text=text, level=level))
+
+    image_objects = []
+    for img in structure["images"]:
+        url = str(img["url"]) if isinstance(img["url"], str) else ""
+        alt = str(img["alt"]) if isinstance(img["alt"], str) else ""
+        caption = str(img["caption"]) if isinstance(img["caption"], str) else ""
+        image_objects.append(ArticleImage(url=url, alt=alt, caption=caption))
+
+    link_objects = []
+    for link in structure["links"]:
+        url = str(link["url"]) if isinstance(link["url"], str) else ""
+        text = str(link["text"]) if isinstance(link["text"], str) else ""
+        context = str(link["context"]) if isinstance(link["context"], str) else ""
+        link_objects.append(ArticleLink(url=url, text=text, context=context))
+
+    table_objects = []
+    for table in structure["tables"]:
+        content = str(table["content"]) if isinstance(table["content"], str) else ""
+        table_objects.append(ArticleTable(content=content))
+
+    structure_result = ArticleStructureResult(
+        headings=heading_objects,
+        images=image_objects,
+        links=link_objects,
+        tables=table_objects,
+    )
+
+    return ExtractedArticleContent(
+        text=article_text,
+        subsections=article_subsections,
+        metadata=metadata_result,
+        structure=structure_result,
+    )
