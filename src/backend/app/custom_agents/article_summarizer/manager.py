@@ -7,6 +7,8 @@ from agents import Runner, trace
 
 from backend.app.custom_agents.article_summarizer.agents import (
     ArticleContent,
+    ArticleMetadata,
+    ArticleStructure,
     AudioFormat,
     SummaryData,
     audio_formatter_agent,
@@ -14,7 +16,10 @@ from backend.app.custom_agents.article_summarizer.agents import (
     summarizer_agent,
 )
 from backend.app.custom_agents.article_summarizer.audio import generate_audio
-from backend.app.custom_agents.article_summarizer.parser import fetch_article_content
+from backend.app.custom_agents.article_summarizer.parser import (
+    extract_article_text,
+    fetch_article_content,
+)
 from backend.app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -63,9 +68,7 @@ class ArticleSummarizerManager:
 
             # Format the final text that will be saved along with the audio
             formatted_text = (
-                f"# {audio_format.title}\n\n"
-                f"{audio_format.narration_text}\n\n"
-                f"Generated from: {url}"
+                f"# {audio_format.title}\n\n{audio_format.narration_text}\n\nGenerated from: {url}"
             )
 
             # Pass the article title, content, and formatted text to generate_audio
@@ -97,12 +100,9 @@ class ArticleSummarizerManager:
                 logger.error("Failed to fetch article content")
                 return None
 
-            from backend.app.custom_agents.article_summarizer.parser import extract_article_text
-            from backend.app.custom_agents.article_summarizer.agents import ArticleMetadata, ArticleStructure
-
-            article_text, subsections, metadata_dict, structure_dict = extract_article_text(html_content)
-
-            import re
+            article_text, subsections, metadata_dict, structure_dict = extract_article_text(
+                html_content
+            )
 
             if not metadata_dict["title"]:
                 title_match = re.search(r"<title>(.*?)</title>", html_content, re.IGNORECASE)
@@ -113,27 +113,55 @@ class ArticleSummarizerManager:
                 title = metadata_dict["title"]
 
             metadata = ArticleMetadata(
-                title=metadata_dict["title"],
-                author=metadata_dict["author"],
-                published_date=metadata_dict["published_date"],
-                source=metadata_dict["source"],
-                tags=metadata_dict["tags"]
+                title=str(metadata_dict["title"]) if metadata_dict["title"] else "",
+                author=str(metadata_dict["author"]) if metadata_dict["author"] else "",
+                published_date=str(metadata_dict["published_date"])
+                if metadata_dict["published_date"]
+                else "",
+                source=str(metadata_dict["source"]) if metadata_dict["source"] else "",
+                tags=metadata_dict["tags"] if isinstance(metadata_dict["tags"], list) else [],
             )
-            
+
+            headings = []
+            for h in structure_dict["headings"]:
+                headings.append({"text": str(h["text"]), "level": str(h["level"])})
+
+            images = []
+            for img in structure_dict["images"]:
+                images.append(
+                    {
+                        "url": str(img["url"]) if "url" in img else "",
+                        "alt": str(img["alt"]) if "alt" in img else "",
+                        "caption": str(img["caption"]) if "caption" in img else "",
+                    }
+                )
+
+            links = []
+            for link in structure_dict["links"]:
+                links.append(
+                    {
+                        "url": str(link["url"]) if "url" in link else "",
+                        "text": str(link["text"]) if "text" in link else "",
+                        "context": str(link["context"]) if "context" in link else "",
+                    }
+                )
+
+            tables = []
+            for table in structure_dict["tables"]:
+                if "rows" in table and isinstance(table["rows"], list):
+                    tables.append({"rows": table["rows"]})
+
             structure = ArticleStructure(
-                headings=structure_dict["headings"],
-                images=structure_dict["images"],
-                links=structure_dict["links"],
-                tables=structure_dict["tables"]
+                headings=headings, images=images, links=links, tables=tables
             )
-            
+
             return ArticleContent(
-                title=title,
+                title=str(title),
                 content=article_text,
                 url=url,
                 subsections=subsections,
                 metadata=metadata,
-                structure=structure
+                structure=structure,
             )
         except Exception as e:
             logger.error(f"Error extracting content: {e}")

@@ -35,7 +35,7 @@ class ArticleStructure(BaseModel):
     links: list[dict[str, str]] = []
     """Links in the article (url, text, context)."""
 
-    tables: list[dict] = []
+    tables: list[dict[str, list[str]]] = []
     """Tables in the article."""
 
 
@@ -53,10 +53,10 @@ class ArticleContent(BaseModel):
 
     subsections: list[dict[str, str]] = []
     """Subsections of the article with heading and content."""
-    
+
     metadata: ArticleMetadata = ArticleMetadata(title="")
     """Metadata extracted from the article."""
-    
+
     structure: ArticleStructure = ArticleStructure()
     """Structural elements of the article."""
 

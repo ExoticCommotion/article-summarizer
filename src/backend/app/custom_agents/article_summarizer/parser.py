@@ -29,7 +29,14 @@ async def fetch_article_content(url: str) -> str | None:
         return None
 
 
-def extract_article_text(html_content: str) -> tuple[str, list[dict[str, str]], dict, dict]:
+def extract_article_text(
+    html_content: str,
+) -> tuple[
+    str,
+    list[dict[str, str]],
+    dict[str, str | list[str]],
+    dict[str, list[dict[str, str | int | list[str]]]],
+]:
     """
     Extract the main article text and metadata from HTML content.
 
@@ -49,72 +56,73 @@ def extract_article_text(html_content: str) -> tuple[str, list[dict[str, str]], 
     for script in soup(["script", "style", "nav", "footer", "header"]):
         script.extract()
 
-    metadata = {
+    metadata: dict[str, str | list[str]] = {
         "title": "",
         "author": "",
         "published_date": "",
         "source": "",
-        "tags": []
+        "tags": [],
     }
-    
-    title_meta = soup.find("meta", property="og:title") or soup.find("meta", property="twitter:title")
-    if title_meta and title_meta.get("content"):
-        metadata["title"] = title_meta.get("content")
-    
-    author_meta = soup.find("meta", attrs={"name": "author"}) or soup.find("meta", property="article:author")
-    if author_meta and author_meta.get("content"):
-        metadata["author"] = author_meta.get("content")
-    
-    date_meta = soup.find("meta", property="article:published_time") or soup.find("meta", attrs={"name": "date"})
-    if date_meta and date_meta.get("content"):
-        metadata["published_date"] = date_meta.get("content")
-    
+
+    title_meta = soup.find("meta", property="og:title") or soup.find(
+        "meta", property="twitter:title"
+    )
+    if title_meta and hasattr(title_meta, "get") and title_meta.get("content"):
+        content = title_meta.get("content")
+        metadata["title"] = str(content) if content is not None else ""
+
+    author_meta = soup.find("meta", attrs={"name": "author"}) or soup.find(
+        "meta", property="article:author"
+    )
+    if author_meta and hasattr(author_meta, "get") and author_meta.get("content"):
+        content = author_meta.get("content")
+        metadata["author"] = str(content) if content is not None else ""
+
+    date_meta = soup.find("meta", property="article:published_time") or soup.find(
+        "meta", attrs={"name": "date"}
+    )
+    if date_meta and hasattr(date_meta, "get") and date_meta.get("content"):
+        content = date_meta.get("content")
+        metadata["published_date"] = str(content) if content is not None else ""
+
     source_meta = soup.find("meta", property="og:site_name")
-    if source_meta and source_meta.get("content"):
-        metadata["source"] = source_meta.get("content")
-    
-    tags = []
+    if source_meta and hasattr(source_meta, "get") and source_meta.get("content"):
+        content = source_meta.get("content")
+        metadata["source"] = str(content) if content is not None else ""
+
+    tags: list[str] = []
     keywords_meta = soup.find("meta", attrs={"name": "keywords"})
-    if keywords_meta and keywords_meta.get("content"):
-        tags = [tag.strip() for tag in keywords_meta.get("content").split(",")]
+    if keywords_meta and hasattr(keywords_meta, "get") and keywords_meta.get("content"):
+        content = keywords_meta.get("content")
+        if isinstance(content, str):
+            tags = [tag.strip() for tag in content.split(",")]
     metadata["tags"] = tags
-    
-    structure = {
+
+    structure: dict[str, list[dict[str, str | int | list[str]]]] = {
         "headings": [],
         "images": [],
         "links": [],
-        "tables": []
+        "tables": [],
     }
-    
+
     headings = soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"])
     for heading in headings:
         heading_level = int(heading.name[1])
-        structure["headings"].append({
-            "text": heading.get_text().strip(),
-            "level": heading_level
-        })
+        structure["headings"].append({"text": heading.get_text().strip(), "level": heading_level})
 
     images = soup.find_all("img")
     for img in images:
-        image_data = {
-            "url": img.get("src", ""),
-            "alt": img.get("alt", ""),
-            "caption": ""
-        }
+        image_data = {"url": img.get("src", ""), "alt": img.get("alt", ""), "caption": ""}
         caption = img.find_next("figcaption")
         if caption:
             image_data["caption"] = caption.get_text().strip()
         structure["images"].append(image_data)
-    
+
     links = soup.find_all("a")
     for link in links:
-        link_data = {
-            "url": link.get("href", ""),
-            "text": link.get_text().strip(),
-            "context": ""
-        }
+        link_data = {"url": link.get("href", ""), "text": link.get_text().strip(), "context": ""}
         structure["links"].append(link_data)
-    
+
     tables = soup.find_all("table")
     for table in tables:
         rows = []
@@ -125,8 +133,9 @@ def extract_article_text(html_content: str) -> tuple[str, list[dict[str, str]], 
             if cells:
                 rows.append(cells)
         if rows:
-            structure["tables"].append({"rows": rows})
-    
+            row_text = ", ".join([" ".join([str(cell) for cell in row]) for row in rows])
+            structure["tables"].append({"content": row_text})
+
     paragraphs = soup.find_all("p")
     article_text = "\n\n".join([p.get_text().strip() for p in paragraphs if p.get_text().strip()])
 

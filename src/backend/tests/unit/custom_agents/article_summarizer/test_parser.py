@@ -104,7 +104,7 @@ def test_extract_article_text_with_subsections():
     assert subsections[2]["heading"] == "Second Section"
     assert "First section content" in subsections[1]["content"]
     assert "Second section content" in subsections[2]["content"]
-    
+
     assert isinstance(metadata, dict)
     assert isinstance(structure, dict)
     assert "headings" in structure
