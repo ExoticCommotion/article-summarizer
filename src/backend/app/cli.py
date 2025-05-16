@@ -81,7 +81,9 @@ async def _summarize_article(url: str) -> Path:
     if not result:
         print("[bold red]Failed to summarize article.[/]")
         sys.exit(1)
-    audio_path, _ = result
+    audio_path, raw_text_path, final_text_path = result
+    print(f"[bold blue]Raw text saved to:[/] {raw_text_path}")
+    print(f"[bold blue]Final text saved to:[/] {final_text_path}")
     return audio_path
 
 

@@ -14,7 +14,18 @@ from backend.app.custom_agents.article_summarizer.agents import (
     summarizer_agent,
 )
 from backend.app.custom_agents.article_summarizer.audio import generate_audio
-from backend.app.custom_agents.article_summarizer.parser import fetch_article_content
+from backend.app.custom_agents.article_summarizer.parser import (
+    extract_article_text,
+    fetch_article_content,
+)
+from backend.app.custom_agents.article_summarizer.pipeline import (
+    run_audio_formatter,
+    run_summarizer,
+)
+from backend.app.helpers.article_summarizer.parser_helpers import (
+    convert_to_article_content,
+    extract_title_from_html,
+)
 from backend.app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -23,7 +34,7 @@ logger = get_logger(__name__)
 class ArticleSummarizerManager:
     """Manager for the article summarization process."""
 
-    async def summarize_article(self, url: str) -> tuple[Path, Path] | None:
+    async def summarize_article(self, url: str) -> tuple[Path, Path, Path] | None:
         """
         Summarize an article from a URL and generate audio.
 
@@ -31,7 +42,7 @@ class ArticleSummarizerManager:
             url: The URL of the article to summarize.
 
         Returns:
-            A tuple containing the paths to the generated audio file and text file,
+            A tuple containing the paths to the generated audio file, raw text file, and final text file,
             or None if the process failed.
         """
         trace_id = generate_trace_id()
@@ -46,11 +57,6 @@ class ArticleSummarizerManager:
                 logger.error("Failed to extract article content")
                 return None
 
-            from backend.app.custom_agents.article_summarizer.pipeline import (
-                run_audio_formatter,
-                run_summarizer,
-            )
-
             summary = await run_summarizer(article_content)
             if not summary:
                 logger.error("Failed to summarize article")
@@ -61,16 +67,22 @@ class ArticleSummarizerManager:
                 logger.error("Failed to format for audio")
                 return None
 
-            # Pass the article title and content to generate_audio
-            audio_path, text_path = await generate_audio(
+            # Format the final text that will be saved along with the audio
+            formatted_text = (
+                f"# {audio_format.title}\n\n{audio_format.narration_text}\n\nGenerated from: {url}"
+            )
+
+            # Pass the article title, content, and formatted text to generate_audio
+            audio_path, raw_text_path, final_text_path = await generate_audio(
                 audio_format.narration_text,
                 audio_format.filename,
                 article_content.title,
                 article_content.content,
+                formatted_text,
             )
 
             logger.info(f"Article summarization complete. Files saved to {audio_path.parent}")
-            return audio_path, text_path
+            return audio_path, raw_text_path, final_text_path
 
     async def _extract_content(self, url: str) -> ArticleContent | None:
         """
@@ -89,20 +101,14 @@ class ArticleSummarizerManager:
                 logger.error("Failed to fetch article content")
                 return None
 
-            from backend.app.custom_agents.article_summarizer.parser import extract_article_text
+            # Extract article content
+            extracted_content = extract_article_text(html_content)
 
-            article_text, subsections = extract_article_text(html_content)
+            if not extracted_content.metadata.title:
+                extracted_content.metadata.title = extract_title_from_html(html_content)
 
-            import re
+            return convert_to_article_content(extracted_content, url)
 
-            title_match = re.search(r"<title>(.*?)</title>", html_content, re.IGNORECASE)
-            title = title_match.group(1) if title_match else "Untitled Article"
-
-            title = re.sub(r"\s*[-–|]\s*.*$", "", title).strip()
-
-            return ArticleContent(
-                title=title, content=article_text, url=url, subsections=subsections
-            )
         except Exception as e:
             logger.error(f"Error extracting content: {e}")
             return None
