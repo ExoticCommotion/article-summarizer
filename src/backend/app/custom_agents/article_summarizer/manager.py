@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 class ArticleSummarizerManager:
     """Manager for the article summarization process."""
 
-    async def summarize_article(self, url: str) -> tuple[Path, Path] | None:
+    async def summarize_article(self, url: str) -> tuple[Path, Path, Path] | None:
         """
         Summarize an article from a URL and generate audio.
 
@@ -31,7 +31,7 @@ class ArticleSummarizerManager:
             url: The URL of the article to summarize.
 
         Returns:
-            A tuple containing the paths to the generated audio file and text file,
+            A tuple containing the paths to the generated audio file, raw text file, and final text file,
             or None if the process failed.
         """
         trace_id = generate_trace_id()
@@ -61,16 +61,24 @@ class ArticleSummarizerManager:
                 logger.error("Failed to format for audio")
                 return None
 
-            # Pass the article title and content to generate_audio
-            audio_path, text_path = await generate_audio(
+            # Format the final text that will be saved along with the audio
+            formatted_text = (
+                f"# {audio_format.title}\n\n"
+                f"{audio_format.narration_text}\n\n"
+                f"Generated from: {url}"
+            )
+
+            # Pass the article title, content, and formatted text to generate_audio
+            audio_path, raw_text_path, final_text_path = await generate_audio(
                 audio_format.narration_text,
                 audio_format.filename,
                 article_content.title,
                 article_content.content,
+                formatted_text,
             )
 
             logger.info(f"Article summarization complete. Files saved to {audio_path.parent}")
-            return audio_path, text_path
+            return audio_path, raw_text_path, final_text_path
 
     async def _extract_content(self, url: str) -> ArticleContent | None:
         """
@@ -90,18 +98,42 @@ class ArticleSummarizerManager:
                 return None
 
             from backend.app.custom_agents.article_summarizer.parser import extract_article_text
+            from backend.app.custom_agents.article_summarizer.agents import ArticleMetadata, ArticleStructure
 
-            article_text, subsections = extract_article_text(html_content)
+            article_text, subsections, metadata_dict, structure_dict = extract_article_text(html_content)
 
             import re
 
-            title_match = re.search(r"<title>(.*?)</title>", html_content, re.IGNORECASE)
-            title = title_match.group(1) if title_match else "Untitled Article"
+            if not metadata_dict["title"]:
+                title_match = re.search(r"<title>(.*?)</title>", html_content, re.IGNORECASE)
+                title = title_match.group(1) if title_match else "Untitled Article"
+                title = re.sub(r"\s*[-–|]\s*.*$", "", title).strip()
+                metadata_dict["title"] = title
+            else:
+                title = metadata_dict["title"]
 
-            title = re.sub(r"\s*[-–|]\s*.*$", "", title).strip()
-
+            metadata = ArticleMetadata(
+                title=metadata_dict["title"],
+                author=metadata_dict["author"],
+                published_date=metadata_dict["published_date"],
+                source=metadata_dict["source"],
+                tags=metadata_dict["tags"]
+            )
+            
+            structure = ArticleStructure(
+                headings=structure_dict["headings"],
+                images=structure_dict["images"],
+                links=structure_dict["links"],
+                tables=structure_dict["tables"]
+            )
+            
             return ArticleContent(
-                title=title, content=article_text, url=url, subsections=subsections
+                title=title,
+                content=article_text,
+                url=url,
+                subsections=subsections,
+                metadata=metadata,
+                structure=structure
             )
         except Exception as e:
             logger.error(f"Error extracting content: {e}")

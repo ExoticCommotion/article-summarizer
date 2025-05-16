@@ -61,12 +61,14 @@ def test_extract_article_text():
     </html>
     """
 
-    article_text, subsections = extract_article_text(html_content)
+    article_text, subsections, metadata, structure = extract_article_text(html_content)
 
     assert "Paragraph 1" in article_text
     assert "Paragraph 2" in article_text
     assert "console.log" not in article_text
     assert isinstance(subsections, list)
+    assert isinstance(metadata, dict)
+    assert isinstance(structure, dict)
 
 
 def test_extract_article_text_with_subsections():
@@ -90,7 +92,7 @@ def test_extract_article_text_with_subsections():
     </html>
     """
 
-    article_text, subsections = extract_article_text(html_content)
+    article_text, subsections, metadata, structure = extract_article_text(html_content)
 
     assert "Introduction paragraph" in article_text
     assert "First section content" in article_text
@@ -102,3 +104,7 @@ def test_extract_article_text_with_subsections():
     assert subsections[2]["heading"] == "Second Section"
     assert "First section content" in subsections[1]["content"]
     assert "Second section content" in subsections[2]["content"]
+    
+    assert isinstance(metadata, dict)
+    assert isinstance(structure, dict)
+    assert "headings" in structure

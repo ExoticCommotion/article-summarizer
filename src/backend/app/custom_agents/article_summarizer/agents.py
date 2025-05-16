@@ -4,6 +4,41 @@ from agents import Agent, gen_trace_id
 from pydantic import BaseModel
 
 
+class ArticleMetadata(BaseModel):
+    """Metadata extracted from the article."""
+
+    title: str
+    """The title of the article."""
+
+    author: str = ""
+    """The author of the article, if available."""
+
+    published_date: str = ""
+    """The publication date of the article, if available."""
+
+    source: str = ""
+    """The source of the article (e.g., website name)."""
+
+    tags: list[str] = []
+    """Tags or categories associated with the article."""
+
+
+class ArticleStructure(BaseModel):
+    """Structural elements of the article."""
+
+    headings: list[dict[str, str]] = []
+    """Hierarchical headings in the article (text and level)."""
+
+    images: list[dict[str, str]] = []
+    """Images in the article (url, alt text, caption)."""
+
+    links: list[dict[str, str]] = []
+    """Links in the article (url, text, context)."""
+
+    tables: list[dict] = []
+    """Tables in the article."""
+
+
 class ArticleContent(BaseModel):
     """Data structure for extracted article content."""
 
@@ -18,6 +53,12 @@ class ArticleContent(BaseModel):
 
     subsections: list[dict[str, str]] = []
     """Subsections of the article with heading and content."""
+    
+    metadata: ArticleMetadata = ArticleMetadata(title="")
+    """Metadata extracted from the article."""
+    
+    structure: ArticleStructure = ArticleStructure()
+    """Structural elements of the article."""
 
 
 class SummaryData(BaseModel):
