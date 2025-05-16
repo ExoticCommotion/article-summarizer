@@ -20,6 +20,10 @@ from backend.app.custom_agents.article_summarizer.parser import (
     extract_article_text,
     fetch_article_content,
 )
+from backend.app.custom_agents.article_summarizer.pipeline import (
+    run_audio_formatter,
+    run_summarizer,
+)
 from backend.app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -50,11 +54,6 @@ class ArticleSummarizerManager:
             if not article_content:
                 logger.error("Failed to extract article content")
                 return None
-
-            from backend.app.custom_agents.article_summarizer.pipeline import (
-                run_audio_formatter,
-                run_summarizer,
-            )
 
             summary = await run_summarizer(article_content)
             if not summary:

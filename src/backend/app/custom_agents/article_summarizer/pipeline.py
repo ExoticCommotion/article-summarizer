@@ -1,5 +1,7 @@
 """Agent-native pipeline for article summarization."""
 
+import re
+
 from agents import Runner, custom_span
 from pydantic import BaseModel
 
@@ -140,8 +142,6 @@ async def run_audio_formatter(summary: SummaryData) -> AudioFormat | None:
 
             result = await Runner.run(audio_formatter_agent, input_data)
             audio_format = result.final_output_as(AudioFormat)
-
-            import re
 
             safe_filename = re.sub(r"[^\w\-_]", "_", audio_format.filename)
             audio_format.filename = safe_filename
