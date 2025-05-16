@@ -8,6 +8,10 @@ from backend.app.custom_agents.article_summarizer.parser import (
     extract_article_text,
     fetch_article_content,
 )
+from backend.app.types.article_summarizer.parser_types import (
+    ArticleMetadataResult,
+    ArticleStructureResult,
+)
 
 
 @pytest.mark.asyncio
@@ -61,14 +65,14 @@ def test_extract_article_text():
     </html>
     """
 
-    article_text, subsections, metadata, structure = extract_article_text(html_content)
+    result = extract_article_text(html_content)
 
-    assert "Paragraph 1" in article_text
-    assert "Paragraph 2" in article_text
-    assert "console.log" not in article_text
-    assert isinstance(subsections, list)
-    assert isinstance(metadata, dict)
-    assert isinstance(structure, dict)
+    assert "Paragraph 1" in result.text
+    assert "Paragraph 2" in result.text
+    assert "console.log" not in result.text
+    assert isinstance(result.subsections, list)
+    assert isinstance(result.metadata, ArticleMetadataResult)
+    assert isinstance(result.structure, ArticleStructureResult)
 
 
 def test_extract_article_text_with_subsections():
@@ -92,19 +96,19 @@ def test_extract_article_text_with_subsections():
     </html>
     """
 
-    article_text, subsections, metadata, structure = extract_article_text(html_content)
+    result = extract_article_text(html_content)
 
-    assert "Introduction paragraph" in article_text
-    assert "First section content" in article_text
-    assert "Second section content" in article_text
+    assert "Introduction paragraph" in result.text
+    assert "First section content" in result.text
+    assert "Second section content" in result.text
 
-    assert len(subsections) == 3
-    assert subsections[0]["heading"] == "Main Heading"
-    assert subsections[1]["heading"] == "First Section"
-    assert subsections[2]["heading"] == "Second Section"
-    assert "First section content" in subsections[1]["content"]
-    assert "Second section content" in subsections[2]["content"]
+    assert len(result.subsections) == 3
+    assert result.subsections[0].heading == "Main Heading"
+    assert result.subsections[1].heading == "First Section"
+    assert result.subsections[2].heading == "Second Section"
+    assert "First section content" in result.subsections[1].content
+    assert "Second section content" in result.subsections[2].content
 
-    assert isinstance(metadata, dict)
-    assert isinstance(structure, dict)
-    assert "headings" in structure
+    assert isinstance(result.metadata, ArticleMetadataResult)
+    assert isinstance(result.structure, ArticleStructureResult)
+    assert result.structure.headings[0].text == "Main Heading"

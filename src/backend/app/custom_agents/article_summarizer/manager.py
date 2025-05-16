@@ -7,8 +7,6 @@ from agents import Runner, trace
 
 from backend.app.custom_agents.article_summarizer.agents import (
     ArticleContent,
-    ArticleMetadata,
-    ArticleStructure,
     AudioFormat,
     SummaryData,
     audio_formatter_agent,
@@ -23,6 +21,10 @@ from backend.app.custom_agents.article_summarizer.parser import (
 from backend.app.custom_agents.article_summarizer.pipeline import (
     run_audio_formatter,
     run_summarizer,
+)
+from backend.app.helpers.article_summarizer.parser_helpers import (
+    convert_to_article_content,
+    extract_title_from_html,
 )
 from backend.app.utils.logger import get_logger
 
@@ -99,69 +101,14 @@ class ArticleSummarizerManager:
                 logger.error("Failed to fetch article content")
                 return None
 
-            article_text, subsections, metadata_dict, structure_dict = extract_article_text(
-                html_content
-            )
+            # Extract article content
+            extracted_content = extract_article_text(html_content)
 
-            if not metadata_dict["title"]:
-                title_match = re.search(r"<title>(.*?)</title>", html_content, re.IGNORECASE)
-                title = title_match.group(1) if title_match else "Untitled Article"
-                title = re.sub(r"\s*[-–|]\s*.*$", "", title).strip()
-                metadata_dict["title"] = title
-            else:
-                title = metadata_dict["title"]
+            if not extracted_content.metadata.title:
+                extracted_content.metadata.title = extract_title_from_html(html_content)
 
-            metadata = ArticleMetadata(
-                title=str(metadata_dict["title"]) if metadata_dict["title"] else "",
-                author=str(metadata_dict["author"]) if metadata_dict["author"] else "",
-                published_date=str(metadata_dict["published_date"])
-                if metadata_dict["published_date"]
-                else "",
-                source=str(metadata_dict["source"]) if metadata_dict["source"] else "",
-                tags=metadata_dict["tags"] if isinstance(metadata_dict["tags"], list) else [],
-            )
+            return convert_to_article_content(extracted_content, url)
 
-            headings = []
-            for h in structure_dict["headings"]:
-                headings.append({"text": str(h["text"]), "level": str(h["level"])})
-
-            images = []
-            for img in structure_dict["images"]:
-                images.append(
-                    {
-                        "url": str(img["url"]) if "url" in img else "",
-                        "alt": str(img["alt"]) if "alt" in img else "",
-                        "caption": str(img["caption"]) if "caption" in img else "",
-                    }
-                )
-
-            links = []
-            for link in structure_dict["links"]:
-                links.append(
-                    {
-                        "url": str(link["url"]) if "url" in link else "",
-                        "text": str(link["text"]) if "text" in link else "",
-                        "context": str(link["context"]) if "context" in link else "",
-                    }
-                )
-
-            tables = []
-            for table in structure_dict["tables"]:
-                if "rows" in table and isinstance(table["rows"], list):
-                    tables.append({"rows": table["rows"]})
-
-            structure = ArticleStructure(
-                headings=headings, images=images, links=links, tables=tables
-            )
-
-            return ArticleContent(
-                title=str(title),
-                content=article_text,
-                url=url,
-                subsections=subsections,
-                metadata=metadata,
-                structure=structure,
-            )
         except Exception as e:
             logger.error(f"Error extracting content: {e}")
             return None
